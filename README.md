@@ -14,3 +14,8 @@ Tray icon:
 
 Options:
 ![image](https://github.com/user-attachments/assets/5b596a22-c696-446b-beb5-e31a7e7b06f9)
+
+To convert to exe:
+```bash
+pyinstaller --onefile --windowed overlay.py
+```
