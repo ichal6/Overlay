@@ -157,7 +157,7 @@ def create_overlay():
                 lambda: overlay.after(0, on_exit)
             )
         )
-        icon = pystray.Icon("overlay", image, "Overlay", menu)
+        icon = pystray.Icon("DateTimeOnTop", image, "Date and time -> right click for options", menu)
         tray_icon_ref[0] = icon
         icon.run()
 
