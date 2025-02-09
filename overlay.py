@@ -12,17 +12,17 @@ def create_overlay():
 
     # Make the window transparent and always on top
     overlay.attributes('-topmost', True)
-    overlay.attributes('-alpha', 0.7)  # Transparency (1.0 is opaque, 0.0 is fully transparent)
-    overlay.configure(bg="black")  # Background color for better contrast
+    overlay.attributes('-alpha', 0.7)  # 1.0 is opaque, 0.0 is fully transparent
+    overlay.configure(bg="black")      # Background color for contrast
 
     # Remove window borders
     overlay.overrideredirect(True)
 
-    # Get the screen width and height
+    # Get screen width and height
     screen_width = overlay.winfo_screenwidth()
     screen_height = overlay.winfo_screenheight()
 
-    # Set the size of the overlay window and position it at the left bottom corner
+    # Set the size and position (left bottom corner)
     overlay_width = 300
     overlay_height = 50
     x_position = 350  # Left edge
@@ -30,7 +30,7 @@ def create_overlay():
 
     overlay.geometry(f"{overlay_width}x{overlay_height}+{x_position}+{y_position}")
 
-    # Text to display (current time)
+    # Text variable for displaying time
     text_var = StringVar()
 
     def update_time():
@@ -43,23 +43,21 @@ def create_overlay():
     label = tk.Label(overlay, textvariable=text_var, fg="white", bg="black", font=("Arial", 16))
     label.pack(fill="both", expand=True)
 
-    # Variable to track whether the overlay is clickable (focusable)
-    is_focusable = True
+    # Variables to track the state
+    is_focusable = True  # True means the overlay is clickable
+    is_on_top = True     # True means the overlay is always on top
 
-    # Variable to track the always on top state
-    is_on_top = True
-
-    # Instruction label (also used for blinking when toggling)
+    # Instruction label (used for blinking on toggle)
     instructions = tk.Label(
         overlay,
-        text="Press 'T' to toggle focus mode",
+        text="Press 't' to toggle focus mode",
         fg="white",
         bg="black",
         font=("Arial", 10)
     )
     instructions.pack()
 
-    # Function to toggle focusable (clickable) state
+    # Function to toggle clickable (focusable) state
     def toggle_focus():
         nonlocal is_focusable
         try:
@@ -71,13 +69,13 @@ def create_overlay():
                 # Make focusable again
                 overlay.attributes('-disabled', False)
                 overlay.lift()        # Bring window to the front
-                overlay.focus_force() # Force focus on the window
+                overlay.focus_force() # Force focus
                 is_focusable = True
         except Exception as e:
             print("Failed to toggle focusable mode:", e)
         blink_instructions()
 
-    # Function to blink the instruction text in red momentarily
+    # Function to blink instructions in red
     def blink_instructions():
         def set_red():
             instructions.config(fg="red")
@@ -88,7 +86,7 @@ def create_overlay():
         overlay.after(500, set_red)
         overlay.after(700, set_white)
 
-    # Function to toggle always on top
+    # Function to toggle the always on top state
     def toggle_on_top():
         nonlocal is_on_top
         if is_on_top:
@@ -98,10 +96,10 @@ def create_overlay():
             overlay.attributes('-topmost', True)
             is_on_top = True
 
-    # Bind the 't' key to toggle the clickable mode
+    # Bind the 't' key to toggle the clickable state
     overlay.bind('t', lambda event: toggle_focus())
 
-    # Allow the user to move the overlay with mouse dragging
+    # Allow user to move the overlay by dragging with the mouse
     def start_drag(event):
         overlay.x = event.x
         overlay.y = event.y
@@ -116,47 +114,54 @@ def create_overlay():
 
     # --- Tray Icon Setup using pystray ---
 
-    # Create a simple icon image for the system tray
+    # Create a simple icon image for the tray
     def create_image():
         width = 64
         height = 64
         image = Image.new('RGB', (width, height), color='black')
         dc = ImageDraw.Draw(image)
-        # Draw a white rectangle in the center as a simple design
+        # Draw a white rectangle as a simple design
         dc.rectangle(
             [width // 4, height // 4, width * 3 // 4, height * 3 // 4],
             fill='white'
         )
         return image
 
-    # Container to hold the tray icon instance (so we can stop it on exit)
+    # Container to hold the tray icon instance (so it can be stopped on exit)
     tray_icon_ref = [None]
 
-    # Function to handle exit via the tray menu
+    # Function to handle exit from the tray menu
     def on_exit():
         if tray_icon_ref[0]:
             tray_icon_ref[0].stop()  # Stop the tray icon
         overlay.destroy()            # Close the overlay window
 
-    # Function to run the tray icon (to be executed in its own thread)
+    # Function to run the tray icon in its own thread
     def run_tray_icon():
         image = create_image()
         menu = pystray.Menu(
             pystray.MenuItem(
-                'Toggle clickable', lambda: overlay.after(0, toggle_focus)
+                'Clickable (t)',
+                lambda: overlay.after(0, toggle_focus),
+                # Check symbol: shows checked if overlay is clickable (focusable)
+                checked=lambda item: is_focusable
             ),
             pystray.MenuItem(
-                'On-top/normal', lambda: overlay.after(0, toggle_on_top)
+                'On-top/normal',
+                lambda: overlay.after(0, toggle_on_top),
+                # Check symbol: shows checked if overlay is set as always on top
+                checked=lambda item: is_on_top
             ),
             pystray.MenuItem(
-                'Exit', lambda: overlay.after(0, on_exit)
+                'Exit (ALT+F4)',
+                lambda: overlay.after(0, on_exit)
             )
         )
         icon = pystray.Icon("overlay", image, "Overlay", menu)
         tray_icon_ref[0] = icon
         icon.run()
 
-    # Start the tray icon in a separate daemon thread so it doesn't block Tkinter's mainloop
+    # Start the tray icon in a separate daemon thread
     tray_thread = threading.Thread(target=run_tray_icon, daemon=True)
     tray_thread.start()
 
